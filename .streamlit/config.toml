@@ -1,6 +1,12 @@
 [server]
 fileWatcherType = "none"
 headless = true
+# HF Spaces proxies requests through its own domain, which breaks Streamlit's
+# default XSRF cookie check on file uploads (403 "XSRF token missing or
+# invalid" on PUT /_stcore/upload_file). Safe to disable here: this app has
+# no auth/session state that CSRF protection would otherwise be guarding.
+enableXsrfProtection = false
+enableCORS = false
 
 [browser]
 gatherUsageStats = false
