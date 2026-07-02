@@ -20,6 +20,13 @@ Rules:
 - Only list capabilities with clear code evidence. No speculation.
 - Distinguish implemented (code runs) vs imported-but-unused.
 - Be technical and specific.
+- CRITICAL: if the file defines multiple distinct routes/endpoints/functions, list
+  EACH one as its own separate item — never collapse them into one summary phrase.
+  E.g. for a file with POST /tasks, GET /tasks, and DELETE /tasks/<id>, return three
+  separate items ("Creates a task via POST /tasks", "Lists tasks via GET /tasks",
+  "Deletes a task via DELETE /tasks/<id>"), not one item like "implements task CRUD API".
+  A downstream matcher checks each claim individually against these items, so vague
+  or merged items cause real capabilities to be missed.
 
 Return a JSON object:
 {

@@ -1,3 +1,13 @@
+---
+title: AI Evidence Layer
+emoji: 🔍
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # AI Evidence Layer
 
 An AI-assisted evaluation system that ingests multi-modal project submissions (deck, demo, code, live prototype) and produces **evidence-grounded, cited, reproducible scores** against a rubric.
@@ -16,7 +26,7 @@ Given a submission:
 6. **Cross-references claims** — flags features in the deck that have no code backing, features in the code that weren't demoed, and contradictions between sources
 7. Scores on 5 rubric criteria, retrieving evidence per-criterion and citing specific source IDs (`slide_5`, `src/auth.py`, `video_02:10`, `url_login_flow`)
 
-Final output is structured JSON matching the assignment spec + a Chainlit UI report.
+Final output is structured JSON matching the assignment spec + a Streamlit dashboard report.
 
 ---
 
@@ -33,12 +43,23 @@ cp .env.example .env
 # edit .env, paste your GROQ_API_KEY
 
 # 3. Run the UI
-chainlit run app/ui/chainlit_app.py
+streamlit run app/ui/streamlit_chat.py
 
 # Or run from CLI
 python run_cli.py --deck sample/deck.pdf --repo https://github.com/user/project \
                   --transcript sample/demo.txt --url https://app.example.com
 ```
+
+**Local development without rate limits**: point the app at a local [Ollama](https://ollama.com)
+server instead of Groq — no daily/per-minute quota, and no API key needed. Requires
+`ollama serve` running and the model pulled locally (`ollama pull qwen3-coder:30b`).
+Set in `.env`:
+```
+LLM_PROVIDER=ollama
+OLLAMA_MODEL=qwen3-coder:30b
+```
+This is for local iteration only — the public Hugging Face Space deployment stays on
+Groq, since there's no GPU/model server available in that container.
 
 ---
 
@@ -82,7 +103,7 @@ python run_cli.py --deck sample/deck.pdf --repo https://github.com/user/project 
 
 **One collection per submission.** Clean isolation, easy to re-run with fresh state, and reviewers can inspect the Chroma data directly.
 
-**Open-weight LLM (Llama 3.3 70B via Groq).** Free tier, fast enough to run the full pipeline (~40-50 LLM calls) in under 2 minutes.
+**Open-weight LLM (Llama 3.1 8B via Groq).** Free tier, fast enough to run the full pipeline (~40-50 LLM calls) in under 2 minutes. Chosen over the 70B variant for its far more generous free-tier daily quota (500K tokens / 14.4K requests vs 100K / 1K) — see `.env.example` for other model options.
 
 ---
 
@@ -104,7 +125,7 @@ app/
 ├── validators/claim_validator.py  # Cross-reference logic (core IP)
 ├── scoring/rubric_scorer.py       # Evidence-first scoring
 ├── pipeline.py           # Main orchestrator
-└── ui/chainlit_app.py    # Chat UI
+└── ui/streamlit_chat.py  # Dashboard + chat UI
 ```
 
 ---
@@ -162,6 +183,25 @@ app/
 - **Rate limits**: `tenacity` retries with exponential backoff
 
 ---
+
+## Deploy your own (Hugging Face Spaces)
+
+This repo includes a `Dockerfile` ready for the [Hugging Face Spaces](https://huggingface.co/spaces) Docker SDK.
+
+```bash
+# 1. Create a new Space at huggingface.co/new-space — SDK: Docker
+# 2. Point a remote at it and push this repo
+git remote add space https://huggingface.co/spaces/<username>/<space-name>
+git push space main
+# 3. In the Space's Settings → "Variables and secrets", add GROQ_API_KEY
+#    (get a free key at https://console.groq.com)
+```
+
+The Space builds the image, installs Chromium for the Playwright prototype validator, and serves the Streamlit dashboard on port 7860.
+
+**Known limitations of the public demo**:
+- Groq's free tier is rate-limited to ~25 requests/minute, shared across every visitor — heavy concurrent use will slow evaluations down.
+- The free Spaces tier has ephemeral storage: the Chroma DB resets on every Space restart. This is fine here since each pipeline run resets its own submission's collection anyway.
 
 ## What I'd add next (out of MVP scope)
 

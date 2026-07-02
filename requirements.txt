@@ -1,5 +1,6 @@
 # ── LLM ──────────────────────────────
 groq>=0.11.0
+openai>=1.40.0  # used for local Ollama (Groq SDK hardcodes Groq's own request path)
 tenacity>=8.2.3
 
 # ── Vector DB + embeddings ───────────
@@ -18,7 +19,7 @@ GitPython>=3.1.40
 playwright>=1.40.0
 
 # ── UI ───────────────────────────────
-chainlit>=1.1.0
+streamlit>=1.37.0
 
 # ── Misc ─────────────────────────────
 python-dotenv>=1.0.0

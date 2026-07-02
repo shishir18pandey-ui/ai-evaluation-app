@@ -65,16 +65,30 @@ def _classify_claim(claim: str) -> str:
 # ── Batched judge: judge ALL evidence for one claim in ONE call ─────
 BATCH_JUDGE_SYSTEM = """You evaluate multiple pieces of evidence against a single claim, in one pass.
 
-For each evidence item, decide:
-- "supports": evidence directly confirms the claim
-- "contradicts": evidence directly disproves the claim. INCLUDES:
-  * Evidence stating "NOT PRESENT" or "does not function" in prototype
-  * Code implementing something different from what was claimed
-  * Demo narration backing away from the claim
-- "irrelevant": tangential or too weak to judge
+Each evidence item must first pass a topic-match test: is this evidence actually
+ABOUT THE SAME feature/action/endpoint as the claim? If not, the verdict is
+"irrelevant" — full stop, regardless of how it reads on its own. Do NOT reason
+"the code does X, the claim is about Y, so this contradicts it" — different
+topics are irrelevant, not contradicting.
 
-CRITICAL: If evidence says a feature is NOT PRESENT/NOT FOUND, and the claim
-asserts the feature exists, that is "contradicts" — not "irrelevant".
+Only for evidence that IS about the same topic as the claim, decide:
+- "supports": evidence confirms that same feature/action is implemented/true
+- "contradicts": evidence shows that same feature working differently, broken,
+  or explicitly absent. INCLUDES:
+  * Evidence stating "NOT PRESENT" or "does not function" in prototype
+  * Code implementing the SAME claimed feature in a different way (e.g. claim
+    says "ML-based sentiment scoring", code for that same feature shows
+    rule-based keyword matching instead)
+  * Demo narration backing away from the claim
+- "irrelevant": different topic than the claim, tangential, or too weak to judge
+
+CRITICAL:
+- If evidence says a feature is NOT PRESENT/NOT FOUND, and the claim asserts
+  the feature exists, that is "contradicts" — not "irrelevant".
+- Evidence describing a DIFFERENT capability than the claim (e.g. claim is
+  "delete a task", evidence is "creates a task via POST /tasks") is
+  "irrelevant" — not "contradicts" and not "supports". When in doubt whether
+  two things are "the same feature", default to "irrelevant".
 
 Return JSON: {"verdicts": [{"index": 0, "verdict": "supports|contradicts|irrelevant", "reasoning": "one line"}, ...]}
 Include one verdict per evidence item, in the order given.
@@ -303,9 +317,30 @@ def validate_claims(
             ))
             continue
 
-        # Retrieve evidence
-        # Retrieve evidence
-        results = store.query(claim, k=top_k)
+        # Retrieve evidence. For verifiable (functional) claims, query the
+        # implementation sources (code/url) and the claim/context sources
+        # (deck/video) as separate pools, then combine. A single shared top-k
+        # search lets many near-duplicate deck/video matches (deck items are
+        # near-identical to the claim text, since claims come FROM the deck)
+        # crowd out the handful of code items that actually matter for verifying
+        # a functional claim — code is the authoritative "implementation" source
+        # per the source-role design above, so it must never be starved out.
+        # Tech-stack ("unverifiable") claims skip this: forcing in unrelated code
+        # items there just feeds the judge noise it tends to over-match on.
+        if claim_type == "verifiable":
+            impl_results = store.query(claim, k=top_k, source_types=["code", "url"])
+            context_results = store.query(claim, k=top_k, source_types=["deck", "video"])
+            seen = set()
+            results = []
+            for r in impl_results + context_results:
+                key = (r["metadata"].get("source_id", ""), r["text"][:80])
+                if key in seen:
+                    continue
+                seen.add(key)
+                results.append(r)
+        else:
+            results = store.query(claim, k=top_k)
+
         if not results:
             validations.append(ClaimValidation(
                 claim=claim,

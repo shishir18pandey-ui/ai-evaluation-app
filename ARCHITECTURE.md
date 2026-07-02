@@ -75,7 +75,7 @@ OUTPUT PHASE
         created_at
     }
     ↓
-    JSON file + Chainlit UI display
+    JSON file + Streamlit UI display
 ```
 
 ---
@@ -163,7 +163,7 @@ Each extractor handles one input source type. **All optimized to 1 LLM call per 
 
 ### **4. LLM CLIENT** (`app/llm/client.py`)
 
-Single abstraction layer over the model provider (currently Groq + Llama 3.3 70B).
+Single abstraction layer over the model provider (currently Groq + Llama 3.1 8B, chosen for its much larger free-tier daily quota — see `.env.example`).
 
 Functions:
 - `llm_complete(system, user, json_mode=False)` — text response
@@ -290,15 +290,11 @@ Function: `run_pipeline(inputs: SubmissionInput, on_progress: ProgressFn) -> Sub
 
 ---
 
-### **9. USER INTERFACES**
+### **9. USER INTERFACE**
 
-#### **9a. Chainlit UI** (`app/ui/chainlit_app.py`)
+#### **Streamlit UI** (`app/ui/streamlit_chat.py`)
 
-Chat-based interactive interface. Users ask questions about the submission, retrieve evidence on-demand.
-
-#### **9b. Streamlit UI** (`app/ui/streamlit_chat.py`)
-
-Alternative dashboard interface for reviewing submission scores and evidence.
+Hybrid dashboard + chat interface: sidebar for uploading artefacts and kicking off an evaluation, then three tabs — a scored Dashboard, a Chat-with-evidence RAG view, and raw JSON output.
 
 ---
 

@@ -43,6 +43,12 @@ data/chroma_db/
 # Uploaded files (temporary)
 data/uploads/
 
+# Playwright screenshots (temporary)
+data/screenshots/
+
+# Chainlit file upload cache (temporary)
+.files/
+
 # Environment variables
 .env
 .env.local
@@ -53,3 +59,6 @@ data/uploads/
 # Cache
 .cache/
 .pytest_cache/
+
+# Local Claude Code session state
+.claude/

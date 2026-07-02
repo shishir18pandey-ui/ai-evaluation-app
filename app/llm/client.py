@@ -1,21 +1,24 @@
 """
 LLM client — single abstraction over the model provider.
-Uses Groq (free, fast, supports Llama 3.3 70B open-weight model).
+Supports Groq (hosted, for the public deployment) or a local Ollama server
+(unlimited, free, for fast local development) via LLM_PROVIDER in config.
+Both are OpenAI-compatible endpoints, so the same SDK/request shape works for either.
 """
 import json
 import logging
 import time
 import threading
 from collections import deque
-from typing import Optional
+from typing import Optional, Union
 from groq import Groq
+from openai import OpenAI
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from app.core import config
 
 logger = logging.getLogger(__name__)
 
-_client: Optional[Groq] = None
+_client: Optional[Union[Groq, OpenAI]] = None
 
 # Rate limiter — Groq free tier is 30 RPM for Llama 3.3 70B
 _RATE_LIMIT_RPM = 25
@@ -43,15 +46,26 @@ def _throttle():
         _request_timestamps.append(now)
 
 
-def get_client() -> Groq:
+def get_client() -> Union[Groq, OpenAI]:
     global _client
     if _client is None:
-        if not config.GROQ_API_KEY:
-            raise RuntimeError(
-                "GROQ_API_KEY not set. Get a free key at https://console.groq.com"
-            )
-        _client = Groq(api_key=config.GROQ_API_KEY)
+        if config.LLM_PROVIDER == "ollama":
+            # The Groq SDK hardcodes its own request path (/openai/v1/chat/completions)
+            # regardless of base_url, so it can't talk to Ollama's actual OpenAI-
+            # compatible path (/v1/chat/completions). Use the real openai SDK instead —
+            # Ollama ignores the API key but the SDK requires a non-empty string.
+            _client = OpenAI(api_key="ollama", base_url=config.OLLAMA_BASE_URL)
+        else:
+            if not config.GROQ_API_KEY:
+                raise RuntimeError(
+                    "GROQ_API_KEY not set. Get a free key at https://console.groq.com"
+                )
+            _client = Groq(api_key=config.GROQ_API_KEY)
     return _client
+
+
+def _active_model() -> str:
+    return config.OLLAMA_MODEL if config.LLM_PROVIDER == "ollama" else config.LLM_MODEL
 
 
 @retry(
@@ -65,11 +79,12 @@ def llm_complete(
     json_mode: bool = False,
     temperature: Optional[float] = None,
 ) -> str:
-    _throttle()
+    if config.LLM_PROVIDER != "ollama":
+        _throttle()  # Ollama is local — no daily/per-minute quota to protect
     try:
         client = get_client()
         kwargs = {
-            "model": config.LLM_MODEL,
+            "model": _active_model(),
             "messages": [
                 {"role": "system", "content": system},
                 {"role": "user", "content": user},

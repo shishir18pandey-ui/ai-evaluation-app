@@ -17,9 +17,14 @@ CHROMA_DIR.mkdir(parents=True, exist_ok=True)
 SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
 # LLM
+# LLM_PROVIDER: "groq" (hosted, needed for the public deployment) or
+# "ollama" (local, unlimited/free, needs `ollama serve` running on this machine)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.3-70b-versatile")
-LLM_TEMPERATURE = 0.1  
+LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3-coder:30b")
+LLM_TEMPERATURE = 0.1
 LLM_MAX_RETRIES = 2
 
 # Embeddings (local, free)
