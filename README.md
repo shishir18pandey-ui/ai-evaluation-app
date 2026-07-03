@@ -176,6 +176,12 @@ app/
 
 ---
 
+
+Use this repo to test :
+https://github.com/ShishirPandy/Banking
+
+Just copy paste this repo in gitHub repo section
+
 ## Deploy your own (Hugging Face Spaces)
 
 This repo includes a `Dockerfile` ready for the [Hugging Face Spaces](https://huggingface.co/spaces) Docker SDK.
