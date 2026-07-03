@@ -103,14 +103,13 @@ def extract_from_transcript(transcript: str | Path) -> list[Evidence]:
 
     logger.info("Extracting from %d transcript segments in ONE call", len(chunks))
 
-    try:
-        result = llm_json(
-            TRANSCRIPT_EXTRACTION_SYSTEM,
-            f"TRANSCRIPT:\n\n{blob}\n\nExtract.",
-        )
-    except Exception as e:
-        logger.error("Transcript extraction failed: %s", e)
-        return []
+    # Let LLM-call failures (e.g. rate limits) propagate to the pipeline so it
+    # reports a clear "fail" instead of a misleading "0 segments". A successful-
+    # but-unparseable response returns {} (not an exception) → honest empty list.
+    result = llm_json(
+        TRANSCRIPT_EXTRACTION_SYSTEM,
+        f"TRANSCRIPT:\n\n{blob}\n\nExtract.",
+    )
 
     items = result.get("items", []) if isinstance(result, dict) else []
     chunk_lookup = {idx + 1: (ts_hint, chunk) for idx, (ts_hint, chunk) in enumerate(chunks)}

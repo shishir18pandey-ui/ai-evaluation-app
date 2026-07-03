@@ -148,12 +148,24 @@ def extract_from_repo(repo_url_or_path: str) -> list[Evidence]:
         logger.info("Analyzing %d files", len(files))
 
         all_evidence = []
+        analyzed_ok = 0
+        last_error: Optional[Exception] = None
         for f in files:
             rel = str(f.relative_to(root))
             try:
                 all_evidence.extend(_analyze_file(f, rel))
+                analyzed_ok += 1
             except Exception as e:
                 logger.warning("Failed on %s: %s", rel, e)
+                last_error = e
+
+        # If there were files to analyze but EVERY one errored (e.g. rate limits),
+        # that's a real failure — surface it so the pipeline reports "fail" rather
+        # than a misleading "0 capabilities identified".
+        if files and analyzed_ok == 0 and last_error is not None:
+            raise RuntimeError(
+                f"All {len(files)} code files failed to analyze; last error: {last_error}"
+            )
         return all_evidence
     finally:
         if tmp_path:

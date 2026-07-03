@@ -90,14 +90,15 @@ def extract_from_deck(file_path: str | Path) -> list[Evidence]:
 
     logger.info("Extracting claims from %d slides in ONE call", len(slides))
 
-    try:
-        result = llm_json(
-            CLAIM_EXTRACTION_SYSTEM,
-            f"DECK:\n\n{deck_blob}\n\nExtract all claims.",
-        )
-    except Exception as e:
-        logger.error("Deck extraction failed: %s", e)
-        return []
+    # Let LLM-call failures (e.g. rate limits) propagate to the pipeline so it
+    # reports a clear "fail" — otherwise a swallowed error looks identical to a
+    # deck that genuinely had no claims ("0 claims extracted"), which is
+    # misleading. A successful-but-unparseable response returns {} (not an
+    # exception) and still yields an honest empty list below.
+    result = llm_json(
+        CLAIM_EXTRACTION_SYSTEM,
+        f"DECK:\n\n{deck_blob}\n\nExtract all claims.",
+    )
 
     claims = result.get("claims", []) if isinstance(result, dict) else []
     evidences = []

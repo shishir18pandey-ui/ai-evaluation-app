@@ -83,7 +83,9 @@ class SubmissionReport:
         return {
             "submission_id": self.submission_id,
             "summary": self.summary,
-            "unified_submission": asdict(self.unified_submission),
+            # unified_submission is None when no evidence could be extracted
+            # (e.g. every LLM call was rate-limited) — don't crash asdict() on it.
+            "unified_submission": asdict(self.unified_submission) if self.unified_submission else None,
             "prototype_validation": asdict(self.prototype_validation) if self.prototype_validation else None,
             "claim_validation": {
                 "total_claims": len(self.claim_validations),

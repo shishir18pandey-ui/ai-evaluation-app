@@ -103,7 +103,7 @@ Groq, since there's no GPU/model server available in that container.
 
 **One collection per submission.** Clean isolation, easy to re-run with fresh state, and reviewers can inspect the Chroma data directly.
 
-**Open-weight LLM (GPT-OSS 120B via Groq).** Free tier, 131K context, fast enough to run the full pipeline (~40-50 LLM calls) in under 2 minutes. Swap to `llama-3.1-8b-instant` in `.env` if you need higher throughput for heavy local testing (500K tokens/day vs 200K) at the cost of some quality — see `.env.example` for other model options. Local development can also run against Ollama with zero rate limits (see below).
+**Open-weight LLM (Llama 3.1 8B via Groq).** Free tier, fast enough to run the full pipeline (~40-50 LLM calls) in under 2 minutes. Chosen for the highest free-tier quotas (500K tokens/day, 14.4K requests/day) — the pipeline fires many calls in quick succession, so throughput matters more than raw model size here. Bigger models like `gpt-oss-120b` have far lower per-minute token limits that the multi-call pipeline exhausts. Local development can also run against Ollama with zero rate limits (see below).
 
 ---
 

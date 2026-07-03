@@ -163,7 +163,7 @@ Each extractor handles one input source type. **All optimized to 1 LLM call per 
 
 ### **4. LLM CLIENT** (`app/llm/client.py`)
 
-Single abstraction layer over the model provider (currently Groq + GPT-OSS 120B, an open-weight model with a 131K context window — see `.env.example` for alternatives and the local Ollama option).
+Single abstraction layer over the model provider (currently Groq + Llama 3.1 8B, an open-weight model chosen for the highest free-tier quotas — see `.env.example` for alternatives and the local Ollama option).
 
 Functions:
 - `llm_complete(system, user, json_mode=False)` — text response

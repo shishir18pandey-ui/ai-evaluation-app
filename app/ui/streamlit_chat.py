@@ -220,7 +220,18 @@ if start_button:
             report = run_pipeline(inputs, on_progress=on_progress)
         st.session_state.report = report
         progress_placeholder.empty()
-        st.success(f"✅ Evaluation complete — submission `{submission_id}`")
+
+        # Surface any per-source failures (e.g. rate limits) instead of a blanket
+        # green "complete" — a source that failed silently would otherwise look
+        # identical to one that genuinely had nothing to extract.
+        failed_steps = [ln for ln in st.session_state.progress_log if ln.startswith("❌")]
+        if failed_steps:
+            st.warning(
+                "⚠️ Evaluation finished, but some steps failed (often API rate limits — "
+                "try again in a minute):\n\n" + "\n\n".join(failed_steps)
+            )
+        else:
+            st.success(f"✅ Evaluation complete — submission `{submission_id}`")
     except Exception as e:
         st.error(f"Pipeline failed: {e}")
         logging.exception("Pipeline error")
@@ -264,7 +275,12 @@ else:
     # ─────────────────────────────────────────────────────────────
     with tab1:
         if not report.unified_submission:
-            st.warning("Pipeline ran but no evidence was extracted. Try uploading a real pitch deck.")
+            st.warning(
+                "**No evidence could be extracted.** This usually means either the "
+                "artefacts had no readable content, or the LLM calls were rate-limited "
+                "(the free Groq tier has per-minute limits — wait a minute and retry). "
+                "Check the pipeline steps above for any ❌ failures."
+            )
         else:
             us = report.unified_submission
             avg_score = sum(s.score for s in report.scores) / len(report.scores) if report.scores else 0

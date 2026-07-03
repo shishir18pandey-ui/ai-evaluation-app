@@ -21,11 +21,13 @@ SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
 # "ollama" (local, unlimited/free, needs `ollama serve` running on this machine)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
+LLM_MODEL = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3-coder:30b")
 LLM_TEMPERATURE = 0.1
-LLM_MAX_RETRIES = 2
+# More retries = more resilience to transient per-minute rate limits (429s),
+# which the exponential backoff in the client waits out.
+LLM_MAX_RETRIES = 4
 
 # Embeddings (local, free)
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
